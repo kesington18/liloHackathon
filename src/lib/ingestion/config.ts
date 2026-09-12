@@ -30,5 +30,5 @@ export const CHUNK_LINES = 120;
 export const CHUNK_OVERLAP_LINES = 20;
 
 // Embeddings
-export const EMBEDDING_MODEL = "text-embedding-004"; // 768 dims
+export const EMBEDDING_MODEL = "gemini-embedding-001"; // configurable output dims
 export const EMBED_BATCH_SIZE = 50;

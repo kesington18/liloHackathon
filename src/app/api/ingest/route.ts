@@ -55,8 +55,13 @@ export async function POST(request: Request) {
     const batch = allChunks.slice(i, i + EMBED_BATCH_SIZE);
 
     const { embeddings } = await embedMany({
-      model: google.textEmbeddingModel(EMBEDDING_MODEL),
-      values: batch.map((c) => c.content),
+        model: google.embeddingModel(EMBEDDING_MODEL),
+        values: batch.map((c) => c.content),
+        providerOptions: {
+            google: {
+                outputDimensionality: 768,
+            },
+        },
     });
 
     const rows = batch.map((chunk, idx) => ({
