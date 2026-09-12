@@ -1,4 +1,4 @@
 import "server-only";
 import { google } from "@ai-sdk/google";
 
-export const reasoningModel = google("gemini-2.0-flash");
+export const reasoningModel = google("gemini-3.6-flash");
