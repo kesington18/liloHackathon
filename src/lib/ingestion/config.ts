@@ -33,6 +33,11 @@ export const IGNORED_DIRS = new Set([
   ".vercel",
   "public",
   ".claude",
++ "venv",
++ ".venv",
++ "__pycache__",
++ "dist",
++ "vendor",
 ]);
 
 // Skip huge/generated files
