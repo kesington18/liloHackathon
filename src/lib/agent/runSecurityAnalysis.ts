@@ -22,6 +22,12 @@ const findingSchema = z.object({
       ]),
       description: z.string(),
       recommendation: z.string(),
+      suggestedFix: z
+        .string()
+        .nullable()
+        .describe(
+          "A short corrected code snippet demonstrating the fix, if it's a code change. Null if the fix is a dashboard/config change (e.g. an RLS policy edit) rather than a code edit.",
+        ),
     }),
   ),
 });
@@ -43,6 +49,8 @@ Scan the following code for:
 - XSS risk (unsanitized HTML rendering)
 
 Only report real, concrete findings tied to specific files. Do not invent issues that aren't in the code below.
+
+For each finding, also provide "suggestedFix": a short corrected code snippet showing exactly how to fix it, if it's a code-level fix. If the fix is a config/dashboard change instead (e.g. changing an RLS policy in the Supabase dashboard), set suggestedFix to null and rely on "recommendation" to explain it.
 
 CODEBASE:
 ${codebase}`,
