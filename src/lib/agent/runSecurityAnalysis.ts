@@ -32,8 +32,8 @@ const findingSchema = z.object({
   ),
 });
 
-export async function runSecurityAnalysis() {
-  const codebase = await getFullCodebaseContext();
+export async function runSecurityAnalysis(codebase?: string) {
+  const ctx = codebase ?? (await getFullCodebaseContext());
 
   const { object } = await generateObject({
     model: reasoningModel,
@@ -53,7 +53,7 @@ Only report real, concrete findings tied to specific files. Do not invent issues
 For each finding, also provide "suggestedFix": a short corrected code snippet showing exactly how to fix it, if it's a code-level fix. If the fix is a config/dashboard change instead (e.g. changing an RLS policy in the Supabase dashboard), set suggestedFix to null and rely on "recommendation" to explain it.
 
 CODEBASE:
-${codebase}`,
+${ctx}`,
   });
 
   return object;

@@ -18,7 +18,7 @@ import {
   parseRepoInput,
   getDefaultBranch,
   listRepoFiles,
-  fetchFileContent,
+  fetchFileContentsConcurrently,
 } from "@/lib/ingestion/github";
 
 export const maxDuration = 280;
@@ -63,9 +63,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const contentMap = await fetchFileContentsConcurrently(
+      owner,
+      repo,
+      candidates.map((f) => f.path),
+      branch,
+      token,
+    );
+
     const allChunks: CodeChunk[] = [];
     for (const file of candidates) {
-      const content = await fetchFileContent(owner, repo, file.path, branch, token);
+      const content = contentMap.get(file.path);
       if (!content) continue;
       allChunks.push(
         ...chunkFileContent(file.path, content, CHUNK_LINES, CHUNK_OVERLAP_LINES),

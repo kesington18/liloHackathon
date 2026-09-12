@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 
+import { getFullCodebaseContext } from "@/lib/agent/context";
 import { runMapAnalysis } from "@/lib/agent/runMapAnalysis";
 import { runSecurityAnalysis } from "@/lib/agent/runSecurityAnalysis";
 import { runFurtherImprovements } from "@/lib/agent/runFurtherImprovements";
@@ -8,10 +9,12 @@ import { runFurtherImprovements } from "@/lib/agent/runFurtherImprovements";
 export const maxDuration = 180;
 
 export async function POST() {
+  const codebase = await getFullCodebaseContext();
+
   const [mapResult, securityResult, improvementsResult] = await Promise.allSettled([
-    runMapAnalysis(),
-    runSecurityAnalysis(),
-    runFurtherImprovements(),
+    runMapAnalysis(codebase),
+    runSecurityAnalysis(codebase),
+    runFurtherImprovements(codebase),
   ]);
 
   return NextResponse.json({

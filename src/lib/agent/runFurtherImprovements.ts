@@ -29,8 +29,8 @@ const improvementSchema = z.object({
   ),
 });
 
-export async function runFurtherImprovements() {
-  const codebase = await getFullCodebaseContext();
+export async function runFurtherImprovements(codebase?: string) {
+  const ctx = codebase ?? (await getFullCodebaseContext());
 
   const { object } = await generateObject({
     model: reasoningModel,
@@ -48,7 +48,7 @@ Give a short code snippet for concrete fixes where relevant. For high-level feat
 Keep suggestions concrete and grounded in the actual code below — don't give generic advice unrelated to this specific codebase.
 
 CODEBASE:
-${codebase}`,
+${ctx}`,
   });
 
   return object;

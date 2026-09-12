@@ -57,6 +57,13 @@ const CATEGORY_STYLES: Record<string, string> = {
   other: "bg-white/10 text-white/60 ring-1 ring-inset ring-white/10",
 };
 
+const ANALYSIS_STAGES = [
+  "Reading codebase…",
+  "Mapping architecture…",
+  "Scanning for risks…",
+  "Looking for improvements…",
+];
+
 function Skeleton() {
   return (
     <div className="flex flex-col gap-3">
@@ -140,9 +147,19 @@ export default function DashboardPage() {
   const [securityError, setSecurityError] = useState<string | null>(null);
   const [improvementsError, setImprovementsError] = useState<string | null>(null);
 
+  const [stageIndex, setStageIndex] = useState(0);
+
   useEffect(() => {
     refreshRecent();
   }, []);
+
+  useEffect(() => {
+    if (!analyzing) return;
+    const interval = setInterval(() => {
+      setStageIndex((i) => (i + 1) % ANALYSIS_STAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [analyzing]);
 
   async function refreshRecent() {
     try {
@@ -157,6 +174,7 @@ export default function DashboardPage() {
   async function runAnalysis() {
     setAnalyzing(true);
     setHasRun(true);
+    setStageIndex(0);
     setMapError(null);
     setSecurityError(null);
     setImprovementsError(null);
@@ -220,14 +238,14 @@ export default function DashboardPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#07070b] text-white">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-indigo-600/20 blur-[120px]" />
-        <div className="absolute right-[-10rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-fuchsia-600/15 blur-[130px]" />
-        <div className="absolute bottom-[-12rem] left-1/3 h-[26rem] w-[26rem] rounded-full bg-cyan-500/10 blur-[130px]" />
+        <div className="absolute -left-40 -top-40 h-128 w-lg rounded-full bg-indigo-600/20 blur-[120px]" />
+        <div className="absolute -right-40 top-1/3 h-112 w-md rounded-full bg-fuchsia-600/15 blur-[130px]" />
+        <div className="absolute -bottom-48 left-1/3 h-104 w-104 rounded-full bg-cyan-500/10 blur-[130px]" />
       </div>
 
       <div className="relative mx-auto max-w-4xl px-6 py-16">
         <div className="mb-10">
-          <h1 className="bg-gradient-to-r from-white via-indigo-200 to-fuchsia-200 bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
+          <h1 className="bg-linear-to-r from-white via-indigo-200 to-fuchsia-200 bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
             Repo Onboarding Map & Security Scan
           </h1>
           <p className="mt-1 text-sm text-white/50">
@@ -236,7 +254,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="mb-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm">
+        <div className="mb-10 rounded-2xl border border-white/10 bg-white/3 p-5 backdrop-blur-sm">
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
             <input
               value={repoUrl}
@@ -254,9 +272,9 @@ export default function DashboardPage() {
             <button
               onClick={() => loadRepoAndAnalyze()}
               disabled={ingesting || analyzing || !repoUrl.trim()}
-              className="whitespace-nowrap rounded-lg bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100"
+              className="whitespace-nowrap rounded-lg bg-linear-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100"
             >
-              {ingesting ? "Fetching repo…" : analyzing ? "Analyzing…" : "Load & Analyze"}
+              {ingesting ? "Fetching repo…" : analyzing ? ANALYSIS_STAGES[stageIndex] : "Load & Analyze"}
             </button>
           </div>
 
@@ -293,7 +311,7 @@ export default function DashboardPage() {
               disabled={analyzing || ingesting}
               className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 disabled:opacity-40"
             >
-              {analyzing ? "Analyzing…" : "Re-run Analysis"}
+              {analyzing ? ANALYSIS_STAGES[stageIndex] : "Re-run Analysis"}
             </button>
           </div>
         </div>
@@ -308,7 +326,7 @@ export default function DashboardPage() {
           )}
 
           {mapResult && (
-            <div className="animate-fade-in-up rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+            <div className="animate-fade-in-up rounded-2xl border border-white/10 bg-white/3 p-6 backdrop-blur-sm">
               <p className="mb-5 text-sm leading-relaxed text-white/70">{mapResult.overview}</p>
               <div className="mb-6 flex flex-wrap gap-2">
                 {mapResult.techStack.map((tech) => (
@@ -330,7 +348,7 @@ export default function DashboardPage() {
                       className="animate-fade-in-up flex gap-4"
                       style={{ animationDelay: `${idx * 60}ms` }}
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-400 text-xs font-semibold text-black">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-400 to-fuchsia-400 text-xs font-semibold text-black">
                         {step.order}
                       </span>
                       <div className="border-l border-white/10 pb-1 pl-4">
@@ -371,7 +389,7 @@ export default function DashboardPage() {
               {findings.map((finding, idx) => (
                 <div
                   key={idx}
-                  className="animate-fade-in-up rounded-xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm transition-shadow hover:shadow-lg hover:shadow-indigo-500/5"
+                  className="animate-fade-in-up rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-sm transition-shadow hover:shadow-lg hover:shadow-indigo-500/5"
                   style={{ animationDelay: `${idx * 60}ms` }}
                 >
                   <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -426,7 +444,7 @@ export default function DashboardPage() {
               {improvements.map((item, idx) => (
                 <div
                   key={idx}
-                  className="animate-fade-in-up rounded-xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm transition-shadow hover:shadow-lg hover:shadow-fuchsia-500/5"
+                  className="animate-fade-in-up rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-sm transition-shadow hover:shadow-lg hover:shadow-fuchsia-500/5"
                   style={{ animationDelay: `${idx * 60}ms` }}
                 >
                   <div className="mb-2 flex flex-wrap items-center gap-2">

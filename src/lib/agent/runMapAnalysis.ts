@@ -23,8 +23,8 @@ const mapSchema = z.object({
     ),
 });
 
-export async function runMapAnalysis() {
-  const codebase = await getFullCodebaseContext();
+export async function runMapAnalysis(codebase?: string) {
+  const ctx = codebase ?? (await getFullCodebaseContext());
 
   const { object } = await generateObject({
     model: reasoningModel,
@@ -38,7 +38,7 @@ Produce:
 4. "diagram": a Mermaid.js flowchart (starting with "flowchart TD") showing the major components/layers (e.g. client, routes, middleware, database, external services) and how data flows between them. Keep node labels short and simple.
 
 CODEBASE:
-${codebase}`,
+${ctx}`,
   });
 
   return object;
