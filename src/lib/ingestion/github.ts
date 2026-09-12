@@ -84,3 +84,32 @@ export async function fetchFileContent(
   if (data.encoding !== "base64" || !data.content) return null;
   return Buffer.from(data.content, "base64").toString("utf-8");
 }
+
+export async function fetchFileContentsConcurrently(
+  owner: string,
+  repo: string,
+  paths: string[],
+  branch: string,
+  token: string | undefined,
+  concurrency = 8,
+): Promise<Map<string, string>> {
+  const results = new Map<string, string>();
+  let index = 0;
+
+  async function worker() {
+    while (index < paths.length) {
+      const current = index++;
+      const path = paths[current];
+      const content = await fetchFileContent(owner, repo, path, branch, token);
+      if (content) results.set(path, content);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, paths.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+
+  return results;
+}
