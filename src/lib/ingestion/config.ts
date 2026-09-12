@@ -8,6 +8,19 @@ export const INCLUDED_EXTENSIONS = [
   ".sql",
   ".md",
   ".mjs",
+  ".py",
+  ".go",
+  ".rb",
+  ".java",
+  ".rs",
+  ".php",
+  ".c",
+  ".cpp",
+  ".h",
+  ".cs",
+  ".yaml",
+  ".yml",
+  ".json",
 ];
 
 export const IGNORED_DIRS = new Set([
