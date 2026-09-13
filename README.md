@@ -1,8 +1,10 @@
-# Reveal
+# Codebase Compass
 
 An AI-powered onboarding assistant for unfamiliar codebases. Point it at any public or private GitHub repository and get a guided walkthrough, a security risk scan, and concrete improvement suggestions — in minutes, on a fully free stack.
 
 Built for the **Unfamiliar Codebase** track: *build the skill of jumping into and navigating code you didn't write.*
+
+**🔗 Live demo:** [reveal-lilo-hackathon-9fexio3mg-kesington18s-projects.vercel.app/dashboard](https://reveal-lilo-hackathon-9fexio3mg-kesington18s-projects.vercel.app/dashboard)
 
 ---
 
