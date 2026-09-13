@@ -1,19 +1,103 @@
-# Hackathon Starter — Next.js + Supabase
+# Reveal
 
-A ready-to-go template: **Next.js (App Router) + TypeScript + Tailwind CSS** on the frontend, **Supabase** (Postgres + Auth) on the backend, both free tier. Comes with a working email sign-in flow and a demo database table so you can confirm everything's wired up before you start building your actual idea.
+An AI-powered onboarding assistant for unfamiliar codebases. Point it at any public or private GitHub repository and get a guided walkthrough, a security risk scan, and concrete improvement suggestions — in minutes, on a fully free stack.
 
-Click **"Use this template"** on GitHub to get your own copy, then follow the steps below.
+Built for the **Unfamiliar Codebase** track: *build the skill of jumping into and navigating code you didn't write.*
 
-## What's included
+---
 
-- Next.js App Router, TypeScript, Tailwind CSS
-- Supabase browser + server clients (`src/lib/supabase/`) using `@supabase/ssr`
-- `src/proxy.ts` — refreshes the Supabase auth session on every request (Next.js 16's replacement for `middleware.ts`)
-- Email OTP sign-in (`/login`) — enter your email, get a 6-digit code, sign in. No password, no OAuth app to register.
-- A demo `todos` table (with Row Level Security enabled) that the homepage reads from, so you can see the DB connection working immediately
-- `supabase/config.toml` — declarative project config, including the custom email template needed for step 4 below
+## What it does
 
-## Setup (~10 minutes)
+1. **Codebase Walkthrough** — a plain-English overview of what the app does, its detected tech stack, an ordered file-by-file tour of how a request flows through the system, and an auto-generated Mermaid.js system architecture diagram.
+2. **Risk Radar** — a security scan tied to exact files and line numbers (hardcoded secrets, insecure auth, missing validation, injection risk, and more), each finding paired with a ready-to-use suggested code fix.
+3. **Further Improvements** — performance, code quality, and missing-feature suggestions grounded in the actual code, not generic advice.
+
+Additional touches:
+- **Recent repos memory** — previously analyzed repos are remembered and re-analyzable with one click.
+- **Works on any repo** — public or private (via an optional GitHub personal access token).
+- **Runs entirely on a free stack** — no paid API credits required for embeddings or reasoning.
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
+| Database | Supabase Postgres with `pgvector` |
+| Embeddings | Google Gemini (`gemini-embedding-001`) |
+| Reasoning / AI agent | Google Gemini via the Vercel AI SDK (`generateObject`) |
+| Repo ingestion | GitHub REST API |
+| Diagramming | Mermaid.js |
+| Schema validation | Zod |
+
+---
+
+## How it works
+
+```
+GitHub repo
+   │  (GitHub REST API, concurrent fetch)
+   ▼
+Chunking (logical, overlapping line-range chunks)
+   │
+   ▼
+Embeddings (Gemini, 768-dim vectors)
+   │
+   ▼
+Supabase Postgres + pgvector (code_embeddings table)
+   │
+   ▼
+AI reasoning layer (Vercel AI SDK, generateObject + Zod schemas)
+   │
+   ├── Codebase Walkthrough (+ Mermaid diagram)
+   ├── Risk Radar (security findings + suggested fixes)
+   └── Further Improvements (performance / quality / missing features)
+   │
+   ▼
+Dashboard (/dashboard)
+```
+
+---
+
+## Project structure
+
+```
+src/
+  app/
+    dashboard/
+      page.tsx                  # Main UI — repo input, recent repos, all 3 analysis sections
+    api/
+      ingest/route.ts           # Local-filesystem ingestion (original starter feature)
+      ingest-remote/route.ts    # Remote GitHub repo ingestion (fetch → chunk → embed → store)
+      analyze/
+        map/route.ts            # Codebase Walkthrough endpoint
+        security/route.ts       # Risk Radar endpoint
+        improvements/route.ts   # Further Improvements endpoint
+        run/route.ts            # Runs all 3 analyses in parallel, shares one context fetch
+      repo-history/route.ts     # Recently analyzed repos
+  lib/
+    agent/
+      model.ts                  # Shared Gemini reasoning model config
+      context.ts                # Loads full ingested codebase context from Supabase
+      auth.ts                   # Shared secret-based auth for manual/debug endpoints
+      runMapAnalysis.ts
+      runSecurityAnalysis.ts
+      runFurtherImprovements.ts
+    ingestion/
+      config.ts                 # Included extensions, ignored dirs, chunking + embedding config
+      walk.ts                   # Local filesystem walker
+      chunk.ts                  # Line-range chunking logic
+      github.ts                 # GitHub API — file listing + concurrent content fetch
+    supabase/
+      client.ts / server.ts / service.ts / middleware.ts
+supabase/
+  migrations/                   # code_embeddings, repo_history, match_code()
+```
+
+---
+
+## Setup
 
 ### 1. Install dependencies
 
@@ -21,77 +105,52 @@ Click **"Use this template"** on GitHub to get your own copy, then follow the st
 npm install
 ```
 
-### 2. Create your own Supabase project
+### 2. Create a Supabase project
 
-Every team needs its **own** Supabase project — don't share one.
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) and create a new project (free tier).
+2. In **Project Settings → API**, copy your Project URL, `anon` key, and `service_role` key.
+3. In the SQL Editor, run the migrations in `supabase/migrations/` — this creates the `code_embeddings` table (with a `vector(768)` column and `match_code()` similarity function) and the `repo_history` table.
 
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) and sign in (GitHub login is fastest).
-2. **New project** → pick your org, name it, set a database password (save it somewhere), pick the region closest to you, and use the **Free** plan.
-3. Wait ~1-2 minutes for it to finish provisioning.
+### 3. Get a free Gemini API key
 
-### 3. Get your API keys and set up `.env.local`
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+2. Create a key — no credit card required.
 
-```bash
-cp .env.example .env.local
+### 4. Environment variables
+
+Copy `.env.example` to `.env.local` and fill in:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+INGEST_SECRET=            # any random string — protects manual/debug ingest & analyze routes
+GITHUB_TOKEN=              # optional — raises GitHub API rate limits, needed for private repos
 ```
 
-In your Supabase project dashboard, go to **Settings → API**:
-
-- `NEXT_PUBLIC_SUPABASE_URL` → "Project URL"
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → the `anon` `public` key
-- `SUPABASE_SERVICE_ROLE_KEY` → the `service_role` key (**secret** — never expose this in client code, never commit it)
-
-Paste all three into `.env.local`.
-
-### 4. Turn on 6-digit sign-in codes
-
-By default, Supabase's email sign-in sends a clickable **magic link**, not a code. This template's login page expects a **code**, so you need to swap the email template once per project:
-
-1. In your Supabase dashboard: **Authentication → Emails → Magic Link**.
-2. Set the subject to: `Your sign-in code`
-3. Replace the body with the contents of [`supabase/templates/magic_link.html`](./supabase/templates/magic_link.html) in this repo — the important part is that it uses `{{ .Token }}` instead of `{{ .ConfirmationURL }}`.
-4. Save.
-
-That's it — no Google/GitHub developer account, no OAuth redirect URIs to configure. `supabase.auth.signInWithOtp()` + `supabase.auth.verifyOtp()` (already wired up in `src/app/login/`) handle the rest.
-
-> **CLI alternative:** if you'd rather not click through the dashboard, you can apply this (and the demo table below) from the terminal:
-> ```bash
-> npx supabase login
-> npx supabase link --project-ref <your-project-ref>   # find this in your Supabase project URL
-> npx supabase config push --yes   # applies the email template from supabase/config.toml
-> npx supabase db push --linked    # creates the demo todos table
-> ```
-
-### 5. Create the demo table (if you didn't use the CLI above)
-
-In the Supabase dashboard, go to **SQL Editor**, paste the contents of the migration file in [`supabase/migrations/`](./supabase/migrations), and run it. This creates a `todos` table with RLS policies and two seed rows.
-
-### 6. Run it
+### 5. Run it
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You should see two seeded to-dos and a **Sign in** link. Go to `/login`, enter your email, and check your inbox for the code.
+Visit `http://localhost:3000/dashboard`, paste a GitHub repo (`owner/repo` or a full URL), and click **Load & Analyze**.
 
-## Building your actual project
+---
 
-- Swap out the `todos` table/migration for your own schema — add new files under `supabase/migrations/`.
-- The RLS policies on `todos` are wide open (public read + insert) purely so the demo works with no auth required. **Lock this down** once you have real data: scope policies to `auth.uid()` and require `to authenticated`. See the [Supabase RLS docs](https://supabase.com/docs/guides/database/postgres/row-level-security).
-- Need the current user in a Server Component/Route Handler? `import { createClient } from "@/lib/supabase/server"` then `await (await createClient()).auth.getUser()`.
-- Need it in a Client Component? `import { createClient } from "@/lib/supabase/client"`.
-- To require sign-in on a page, redirect in the page itself (see `src/app/login/page.tsx` for the pattern) — the proxy only refreshes the session, it doesn't gate routes.
+## Notes & limitations
 
-## Working with an AI agent? Use the worktree-pr skill
+- **Single active repo model.** Loading a new repo clears previously ingested embeddings — this keeps analysis scoped to exactly one repo at a time, by design, for this version.
+- **File cap.** Remote ingestion caps at 60 files per repo to stay within GitHub API rate limits and keep analysis fast for a demo. Adjust `MAX_REMOTE_FILES` in `src/app/api/ingest-remote/route.ts` if needed.
+- **GitHub rate limits.** Unauthenticated requests are capped at 60/hour; a personal access token raises this to 5,000/hour and is required for private repos.
+- **Embeddings are Gemini-specific.** The reasoning layer is provider-agnostic via the Vercel AI SDK and can be swapped to another model with a one-line change in `src/lib/agent/model.ts`.
 
-This repo ships a Claude Code skill at [`.claude/skills/worktree-pr/`](./.claude/skills/worktree-pr/SKILL.md). Run `/worktree-pr` (or just ask Claude to "package this into a worktree PR") whenever you're about to have an agent make a change — it branches off `main` into a separate `git worktree`, does the work there, verifies it builds, and opens a PR, instead of editing your main checkout directly. Read the skill file for the full rationale — it's short and worth understanding before tonight, not just running blind.
+---
 
-## Deploying
+## Roadmap
 
-Free-tier friendly options: [Vercel](https://vercel.com/new) (built for Next.js) or [Netlify](https://www.netlify.com/). Whichever you pick, set the same three environment variables from `.env.local` in its dashboard — the app won't connect to Supabase without them.
-
-## Learn more
-
-- [Next.js docs](https://nextjs.org/docs)
-- [Supabase docs](https://supabase.com/docs)
-- [Supabase Auth: Email OTP](https://supabase.com/docs/guides/auth/auth-email-passwordless)
+- Multi-repo comparisons
+- Richer, component-level system diagrams
+- Monetization insight suggestions, as a natural extension of the improvement engine
+- Git history storyteller — explain why a file looks the way it does, using its commit history
